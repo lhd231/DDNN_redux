@@ -59,7 +59,8 @@ for n in range(10):
     data_1 = np.concatenate((data_1,DATA[(np.argmax(LABELS, axis=1)==4) + (np.argmax(LABELS, axis=1)==5) + (np.argmax(LABELS, axis=1)==6)]),axis=0)
     labels_1 = np.concatenate((labels_1, LABELS[(np.argmax(LABELS, axis=1)==4) + (np.argmax(LABELS, axis=1)==5) + (np.argmax(LABELS, axis=1)==6)]),axis=0)
 
-
+    print data_1.shape
+    exit()
 
     sess = tf.Session()
     l = local_site('site1',n_input,hidden_layers)

@@ -6,7 +6,6 @@ from sklearn.mixture import GaussianMixture
 from DDNN_tf import local_site
 import warnings
 
-from tensorflow.examples.tutorials.mnist import input_data
 
 def is_outlier(value, mean):
     """Check if value is an outlier
@@ -22,26 +21,23 @@ def make_one_hot(target,labels):
 
 beta = .001
 learning_rate = .001
-n_input = 784
+n_input = 58949
 hidden_layers = [256,256,10]
-n_classes = 10  # Schizo or not
+n_classes = 2  # Schizo or not
 site_size = 10000
 training_epochs = 1000
 batch_size = 300
 step_size = 100
-filename = "./output_sing_gmm.txt"
+filename = "./output_gmm_schiz.txt"
 
 OUTPUT = []
 
-mnist = input_data.read_data_sets("/tmp/data/", one_hot=True)
 
-data_test_s = mnist.test.images
-labels_test_s = mnist.test.labels
 
-print data_test_s.shape
-data_test = data_test_s[np.argmax(labels_test_s,axis=1)!=3,:]
+#data_test_s = mnist.test.images
+#labels_test_s = mnist.test.labels
 
-labels_test = labels_test_s[np.argmax(labels_test_s,axis=1)!=3,:]
+
 #moons_data,moons_labels = dataset.make_moons(400,shuffle=True)
 #moons_data_2,moons_labels_2 = dataset.make_moons(400,shuffle=True)
 
@@ -51,17 +47,22 @@ labels_test = labels_test_s[np.argmax(labels_test_s,axis=1)!=3,:]
 #moons_labels = make_one_hot(moons_labels, n_classes)
 #moons_labels_2 = make_one_hot(moons_labels_2, n_classes)
 
+DATA = np.loadtxt("./DATA_FILE_8_16.txt",delimiter=',')
+LABELS = np.loadtxt("./LABELS_FILE_8_16.txt",delimiter=',')
+print DATA.shape
+perm = np.random.permutation(len(DATA))
+DATA = DATA[perm]
+LABELS = LABELS[perm]
 for n in range(10):
     print str(n)+"th iteration"
-    DATA, LABELS = mnist.train.next_batch(site_size*3, shuffle=True)
-    data_1, labels_1 = DATA[(np.argmax(LABELS,axis=1)==0) + (np.argmax(LABELS,axis=1)==1) + (np.argmax(LABELS,axis=1)==2)], LABELS[(np.argmax(LABELS,axis=1)==0) + (np.argmax(LABELS,axis=1)==1) + (np.argmax(LABELS,axis=1)==2)]
-    data_2 = DATA[(np.argmax(LABELS,axis=1)==7) + (np.argmax(LABELS,axis=1)==8) + (np.argmax(LABELS, axis=1)==9)]
-    labels_2 = LABELS[(np.argmax(LABELS,axis=1)==7) + (np.argmax(LABELS,axis=1)==8) + (np.argmax(LABELS,axis=1)==9)]
+    data_1, labels_1 = DATA[:150], LABELS[:150]
+    data_2 = DATA[150:300]
+    labels_2 = LABELS[150:300]
 
-    data_3, labels_3 = DATA[(np.argmax(LABELS, axis=1)==4) + (np.argmax(LABELS, axis=1)==5) + (np.argmax(LABELS, axis=1)==6)], LABELS[(np.argmax(LABELS, axis=1)==4) + (np.argmax(LABELS, axis=1)==5) + (np.argmax(LABELS, axis=1)==6)]
+    data_3, labels_3 = DATA[300:450], LABELS[300:450]
 
 
-    for i in range(4, 7):
+    for i in range(0, 1):
         indicies = np.where(np.argmax(labels_3,axis=1) == i)[0]
 
         gmm = GaussianMixture(n_components=1).fit(data_3[indicies])
@@ -90,7 +91,7 @@ for n in range(10):
         data_1 = np.concatenate((data_1, d2), axis=0)
         labels_1 =np.concatenate((labels_1, l2), axis=0)
     print "last data set"
-    for i in range(7,n_classes):
+    for i in range(0,1):
         indicies = np.where(np.argmax(labels_2,axis=1) == i)[0]
 
         gmm = GaussianMixture(n_components=1).fit(data_2[indicies])
@@ -119,7 +120,6 @@ for n in range(10):
 
     sess = tf.Session()
 
-
     P = np.random.permutation(len(data_1))
 
     print data_1.shape
@@ -127,8 +127,7 @@ for n in range(10):
 
     data_1 = data_1[P]
     labels_1 = labels_1[P]
-    print data_1.shape
-    exit()
+
     l = local_site('site1',n_input,hidden_layers)
     l.feed(data_1,labels_1)
     X,Y,cost,WB_1, grads, acc = l.get()
@@ -167,8 +166,7 @@ for n in range(10):
                                                        Y: batch_ys})
 
         if epoch%step_size == 0:
-                print data_test.shape
-                r = sess.run([acc], feed_dict={X:data_test,Y:labels_test})
+                r = sess.run([acc], feed_dict={X:DATA[450:500],Y:LABELS[450:500]})
                 output.append(r[0])
                 print r
 
