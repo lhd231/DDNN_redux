@@ -15,20 +15,22 @@ def is_outlier(value, mean):
     return value <= lower or value >= upper
 
 def make_one_hot(target,labels):
+    print type(target)
+    print target.shape
     targets = np.zeros((len(target),labels))
     targets[np.arange(len(target)),target - 1] = 1
     return targets
 
 beta = .001
 learning_rate = .001
-n_input = 58949
-hidden_layers = [256,256,10]
-n_classes = 2  # Schizo or not
+n_input = 741
+hidden_layers = [400,200,4]
+n_classes = 4  # Schizo or not
 site_size = 10000
 training_epochs = 1000
-batch_size = 300
+batch_size = 10
 step_size = 100
-filename = "./output_gmm_schiz.txt"
+filename = "./output_gmm_smokes.txt"
 
 OUTPUT = []
 
@@ -47,25 +49,30 @@ OUTPUT = []
 #moons_labels = make_one_hot(moons_labels, n_classes)
 #moons_labels_2 = make_one_hot(moons_labels_2, n_classes)
 
-DATA = np.loadtxt("./DATA_FILE_8_16.txt",delimiter=',')
-LABELS = np.loadtxt("./LABELS_FILE_8_16.txt",delimiter=',')
+IN = np.loadtxt("./Data_For_Noah.csv",delimiter=',',dtype = np.float32)
+DATA = IN[:,1:]
+LABELS = make_one_hot(IN[:,0].astype(int),4)
 print DATA.shape
 perm = np.random.permutation(len(DATA))
 DATA = DATA[perm]
 LABELS = LABELS[perm]
 for n in range(10):
     print str(n)+"th iteration"
-    data_1, labels_1 = DATA[:150], LABELS[:150]
-    data_2 = DATA[150:300]
-    labels_2 = LABELS[150:300]
+    d_p, l_p = DATA[:150],LABELS[:150]
 
-    data_3, labels_3 = DATA[300:450], LABELS[300:450]
+    indicies_0 = np.where(np.argmax(l_p,axis=1) == 0)[0]
+    indicies_1 = np.where(np.argmax(l_p, axis=1) == 1)[0]
 
+    data_1 = d_p[indicies_0]
+    data_1= np.concatenate((data_1, d_p[indicies_1]), axis=0)
 
-    for i in range(0, 1):
-        indicies = np.where(np.argmax(labels_3,axis=1) == i)[0]
-
-        gmm = GaussianMixture(n_components=1).fit(data_3[indicies])
+    labels_1 = l_p[indicies_0]
+    labels_1= np.concatenate((labels_1, l_p[indicies_1]), axis=0)
+    for i in range(2, 4):
+        indicies = np.where(np.argmax(l_p,axis=1) == i)[0]
+        print indicies.shape
+        print "building"
+        gmm = GaussianMixture(n_components=1).fit(d_p[indicies])
         '''
 
         num = 0
@@ -84,49 +91,29 @@ for n in range(10):
         d2, _ = gmm.sample(len(d_fin))
         l2 = l_fin
         '''
+        print "sampling"
         d2,_ = gmm.sample(indicies.shape[0])
-        l2 = labels_3[indicies]
+        l2 = l_p[indicies]
         print d2.shape
         print data_1.shape
         data_1 = np.concatenate((data_1, d2), axis=0)
         labels_1 =np.concatenate((labels_1, l2), axis=0)
     print "last data set"
+    '''
     for i in range(0,1):
         indicies = np.where(np.argmax(labels_2,axis=1) == i)[0]
 
         gmm = GaussianMixture(n_components=1).fit(data_2[indicies])
 
-        '''
-        num = 0
-        d_fin = []
-        l_fin = []
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            for x,y in zip(data_2[indicies],labels_2[indicies]):
-                o = gmm.predict(x.reshape(1,-1))
-                if o[0].item() is  0:
-                    d_fin.append(x)
-                    l_fin.append(y)
-                    num = num +1
-        print num
-        gmm = GaussianMixture(n_components=1).fit(d_fin)
-        d2, _ = gmm.sample(len(d_fin))
-        l2 = l_fin
-        '''
+
         d2,_ = gmm.sample(indicies.shape[0])
         l2 = labels_2[indicies]
         data_1 = np.concatenate((data_1, d2), axis=0)
         labels_1 =np.concatenate((labels_1, l2), axis=0)
-
+    '''
     sess = tf.Session()
 
-    P = np.random.permutation(len(data_1))
 
-    print data_1.shape
-    print labels_1.shape
-
-    data_1 = data_1[P]
-    labels_1 = labels_1[P]
 
     l = local_site('site1',n_input,hidden_layers)
     l.feed(data_1,labels_1)
@@ -150,6 +137,9 @@ for n in range(10):
     init = tf.global_variables_initializer()
 
     print "running"
+    print data_1.shape
+    print labels_1.shape
+    print min(np.argmax(labels_1,axis=1))
     sess.run(init)
     output = []
     for epoch in range(training_epochs):
@@ -166,7 +156,7 @@ for n in range(10):
                                                        Y: batch_ys})
 
         if epoch%step_size == 0:
-                r = sess.run([acc], feed_dict={X:DATA[450:500],Y:LABELS[450:500]})
+                r = sess.run([acc], feed_dict={X:DATA[150:],Y:LABELS[150:]})
                 output.append(r[0])
                 print r
 
